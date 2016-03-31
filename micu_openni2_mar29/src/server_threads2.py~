@@ -1,0 +1,203 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec  3 14:34:13 2014
+
+TCP Server Example
+
+ref: 
+    https://docs.python.org/2/library/socketserver.html
+    
+Open a terminal, set server IP, and run the server
+ctrl+alt+t
+sudo ifconfig eth0 192.168.1.10 netmask 255.255.255.0
+python tcp_server.py
+
+NOTE:
+    Try changin the list structures for sets - to speed up the process
+    
+
+
+@author: carlos
+"""
+import SocketServer
+import threading
+
+devs = []
+roll = []
+conc = True  # flag for connecting
+disc = False # flag to disconnect
+done = False # flag to terminate
+save = False # flag to save
+
+# Add more devices to dev_list
+dev_list = ['dev1', 'dev2', 'dev3']
+terminate_list= dev_list[:]
+terminate = False # termiantion flag
+# dic = {'KEY1': {"key1":val1, 
+#                 "key2":val2},
+#
+#        'KEY-N': {"key1":val1,
+#                  "key2":val2}
+#       }
+
+dev_dict = {'dev1':{'PORT':50007},
+            'dev2':{'PORT':50008},
+            'dev3':{'PORT':50009}
+            }
+
+roll = {}
+for d in dev_list:
+    roll[d] = 'n'
+
+
+    
+class MyTCPHandler(SocketServer.BaseRequestHandler):
+    """
+    The RequestHandler class for our server.
+
+    It is instantiated once per connection to the server, and must
+    override the handle() method to implement communication to the
+    client.
+    
+    Add devices to dev_list
+    
+    """
+    def handle(self):
+        global done, roll, conc, disc, terminate, devs, save
+        
+        # self.request is the TCP socket connected to the client
+        self.data  = self.request.recv(1024).strip().split(" ")
+        self.devid = self.data[0]
+        self.cmd   = self.data[1]
+        self.msg   = ""
+
+        dev = "dev{}".format(self.devid)
+
+#        print " ====== SERVER -- RUNNING ====== "
+        print "{} wrote:".format(self.client_address[0])
+        print "\t", self.data
+
+        # Check device is on the list of allowed devices:
+        if dev in dev_list:
+            print "Recognized device:"
+            if not terminate:
+                # --- Connect the device <dev1#> "connect" command
+                if conc and self.cmd.lower() == "connect":
+                    print "\tAttempting to {} {}".format(self.cmd, dev)
+                    if dev in devs:
+                        self.msg = "dev{} -already connected".format(self.devid)
+                    else:
+                        devs.append(dev)
+                        self.msg = "dev{}-ready".format(self.devid)                        
+
+            
+                # --- Check if server has registered all devices "check"
+                elif self.cmd.lower() == "check":
+                    if (save) and (dev in devs):
+                        print "here is where we remove the dev!"
+                        self.msg = "save"
+                        devs.remove(dev)                           
+                    else: #either save = False or device is not in the list
+                        print "Device {} saved the img and is no longer enabled".format(self.devid)
+                        print "\tstill connected: ", str(devs).strip('[]')
+                        self.msg = "wait"
+                
+                # --- Allow the clients to request termination using "close"
+                elif self.cmd.lower() == "close":
+                    print "Terminating all threads"
+                    terminate_list.remove(dev)
+                    done = True
+                    terminate = True
+                
+                
+                else: # unknown command
+                    print "Unknown command {}. Use ready, disconnect, devs, check, or close".format(self.cmd)                
+            
+            else: # terminate
+                if dev in devs:
+                    terminate_list.remove(dev)
+                    self.msg = "terminate"
+                if len(terminate_list) ==0:
+                    done = True
+
+            
+        else: # dev not in list
+            print "Unknown device {}. Please check devid try again!".format(dev)
+            self.msg = "dev{} -Not recognized by the server!!".format(self.devid)
+
+
+        print "No. of elements in devs: ", len(devs) 
+        if len(devs) == len(dev_list): #roll.values().count('y') == len(dev_list):
+            conc = False # done connecting all devs
+            disc = True  # allows to disconnect
+            save = True
+            print "All CONNECTED"
+        elif len(devs)==0: # roll.values().count('y') == 0:
+            conc = True   # can begin connecting devices
+            disc = False  # done disconnecting all devices
+            save = False
+            print "All DISCONNECTED"                    
+                                
+    
+    
+        print 'msg: ', self.msg
+        self.request.sendall(self.msg.lower())
+        # print'Devices ready: ', devs
+
+
+class ServerThread(threading.Thread):
+    #HOST = "localhost"
+    #HOST = '192.168.1.87'    # Alien WiFi - ECE Net
+    #HOST = "128.111.185.30"  # Alien Wired ECE Net
+    #HOST = "128.111.185.232" # Desktop Wired ECE Net
+    #HOST = "192.168.1.10" # Local net
+    
+    def __init__(self,serverid='dev1', HOST='128.111.185.232', PORT=50007):      
+        print 'serving %s'%serverid
+        threading.Thread.__init__(self)
+        self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+        
+    def run(self):
+#        while not done:
+#            try:
+#                self.server.handle_request()
+#            except Exception, KeyboardInterrupt:
+#                break
+        self.server.serve_forever()
+        print "CLOSED!"
+
+if __name__ == "__main__":
+    print " ====== SERVER -- RUNNING ====== "
+    
+    #HOST = "localhost"
+    #HOST = '192.168.1.87'    # Alien WiFi - ECE Net
+    #HOST = "128.111.185.30"  # Alien Wired ECE Net
+    #HOST = "128.111.185.232" # Desktop Wired ECE Net
+    HOST = "192.168.1.10" # Local net
+    
+    #PORT = 50007 # Arbitrary non-privileged port
+
+    # Create the server, binding to localhost on port 9999
+    #server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+
+    # Activate the server; this will keep running until you
+    # interrupt the program with Ctrl-C
+    #server.serve_forever()
+
+#    dev_list1 = ['dev1']
+    server_thread_list=[]
+    for d in dev_dict:
+        server_thread = ServerThread(d, HOST=HOST, PORT=dev_dict[d]['PORT'])
+        #server_thread.daemon = True
+        server_thread.start()
+        server_thread_list.append(server_thread)
+    
+#    try:
+#        for s in server_thread_list:
+#            s.join()
+    try:
+        while not done: pass
+        raise KeyboardInterrupt
+    except KeyboardInterrupt:
+        for s in server_thread_list:
+            s.server.shutdown()

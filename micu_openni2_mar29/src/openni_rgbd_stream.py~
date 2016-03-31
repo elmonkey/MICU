@@ -1,0 +1,135 @@
+#!/usr/bin/python
+'''
+Created on Aug 6, 2014
+CURRENT FEATURES:
+=> Display Camine RGBD Streams
+1. openni depthmap --> numpy/opencv array for display
+2. openni rgb --> numpy/opencv array for display
+(no data can be read ofrm tha position/material)
+3. Save images by pressing spacebar
+
+Status = Working
+
+@author: carlos
+'''
+
+from openni import *
+import numpy as np
+import cv2
+
+
+# Initialize
+context = Context()
+context.init()
+
+
+# Create the depth genrator to access the depth stream
+depth_generator = DepthGenerator()
+depth_generator.create(context)
+depth_generator.set_resolution_preset(RES_VGA)
+depth_generator.fps = 30
+
+
+# Create the rgb image generator
+image_generator = ImageGenerator()
+image_generator.create(context)
+image_generator.set_resolution_preset(RES_VGA)
+image_generator.fps = 30
+
+
+def capture_depth():
+    """ Create np.array from Carmine raw depthmap string using 16 or 8 bits
+    depth = np.fromstring(depth_generator.get_raw_depth_map_8(), "uint8").reshape(480, 640)
+    max = 255 #=(2**8)-1"""
+    depth = np.fromstring(depth_generator.get_raw_depth_map(), "uint16").reshape(480, 640)
+    max = (2**12)-1 # = (2**12)-1
+    depth_norm=(depth.astype(float) * 255/max).astype(np.uint8)
+    depth4display = cv2.cvtColor(depth_norm, cv2.COLOR_GRAY2RGB)
+    return depth, depth4display
+#alternate_update_depth_image
+
+
+def capture_rgb():
+    """Create np.array from Carmine rgb stream"""
+    rgb = np.fromstring(image_generator.get_raw_image_map_bgr(), dtype=np.uint8).reshape(480, 640, 3)
+    return rgb
+# capture_rgb
+
+
+def saveFrames(depth,rgb, nframe):
+    """Saves the depth (12bit) and rgb images"""
+    impath = '../data/'
+    cv2.imwrite(impath+'depth'+ str(nframe)+'.png', depth)
+    cv2.imwrite(impath+'rgb'  + str(nframe)+'.png', rgb)
+    return
+#saveFrames
+
+
+
+# start the device carmine
+context.start_generating_all()
+
+
+# Run metrics
+nframe   = 0
+run_time = 0
+
+
+# Circle drawing parameters
+row = 480/2 # height
+col = 640/2 # width
+color  = (0,0,0)
+red    = (0,0,255)
+blue   = (255,0,0)
+green  = (0,255,0)
+yellow = (0,255,255)
+
+cos,ros= depth_generator.map.width, depth_generator.map.height
+
+## --- MAIN LOOP ---
+done = False
+while not done:
+    key =cv2.waitKey(10) & 255
+    if key == 27:
+        print "Exiting code... closing all!"
+        done = True
+    elif chr(key) == 's': #s key to save
+        print "Saving frames with number %d" %nframe
+        saveFrames(depth,rgb, nframe)
+    else:
+        print "Value of key is {}".format(key)
+    depth, depth4display = capture_depth()
+    rgb = capture_rgb()
+#===
+    # Extract and save the distances map
+    #distArray = depth_generator.map
+    #distArray[yy,xx] = np.fromstring(depth_generator.map) #size
+
+    distArray = np.ones((ros,cos), dtype = int)
+
+##    for xx in range(0,cos-1):
+##        for yy in range(0,ros-1):
+##            # NOTE: depth_generator.map has 480x640 shape. the distArray is
+##            #       created with 640x480 shape to follow the image shape.
+##            distArray[yy,xx] = depth_generator.map[xx,yy] #size
+##
+##    print 'distArray info:', type(distArray), distArray.dtype, distArray.shape
+    # display distance
+    # cv2.imshow('distance', np.uint8(distArray))
+    
+#    np.savetxt(p+'distance_'+str(i)+'.out',distArray)
+    
+#===    
+    # draw the crosseye
+    cv2.line(rgb,(col,row-10), (col,row+10), yellow, thickness=2)
+    cv2.line(rgb,(col-10,row), (col+10,row), yellow, thickness=2)
+
+    cv2.imshow("Stream: depth || rgb", np.hstack((depth4display,rgb)))
+    # uptdate the streams
+    context.wait_any_update_all()
+    nframe += 1
+#while
+
+# close cv windows & terminate carmine device
+cv2.destroyAllWindows()
+context.stop_generating_all()

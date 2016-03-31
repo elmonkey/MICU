@@ -1,5 +1,7 @@
 Uses TCP/IP communications to cynchronize and control computers with cameras (RGBD).
 
+set dev<> :: and ip address using ipconfig eth0 or wlan0
+(see server_threads.py and client.py for details)
 
 
 Coded written in python. Main depencencies are:

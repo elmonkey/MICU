@@ -1,0 +1,134 @@
+'''
+Created Feb 3, 2014
+BOOOKEEPING:
+1) ONE folder per action
+2) Use descriptive names for the png's
+
+Idea: create a temporary table that can be integrated to the main file after
+      the session in complete
+hdf5_name = 'actions.h5'
+    group_folder_name = carmine1
+        table_name = action_name
+
+@author: carlos
+'''
+import os
+import tables
+from tables import *
+import time
+import numpy as np
+import random
+
+class Action:
+    def __init__(self, path):
+        self.p = path
+        self.actor  = ["actor"]
+        self.action = ["action"]# os.listdir(path) # labels
+        self.count  = len(self.action) # No. labels
+        self.didx   = ["dev1", "dev2", "dev3"] # device labels
+        self.midx   = ["bgr","depth","mask", "skel"] # mode labels
+        self.pidx   = ["pose"]# pose labels
+        self.sidx   = ["seq1", "seq2"] # sequence labels
+        self.vidx   = []
+        for i in range(0,320,40):
+            self.vidx.append('view'+str(i))# view labels [0,7]
+    #__init__
+
+
+    def get_imlist(self, path, aidx="", vidx="", sidx="", didx="", midx="UserPixels"):
+        """ Returns a list of PATHS for all png/PNG images from the given mode under the given path."""
+        return [os.path.join(path,f) for f in os.listdir(path) if (( f.endswith('.PNG') or f.endswith('.png'))
+               and (f.count(vidx)>0 and f.count(sidx)>0 and f.count(didx)>0 and f.count(midx)>0 and f.count(aidx)>0) )]
+    # get_imlist
+#Action
+
+## ==============================
+# The HDF5 file creation
+def generateHDF5(filename="../data/test.h5", Carmine):
+    '''
+    Generate an action-hdf5 file containing three tables (one for each device)
+    keys=[tracking, confidence, projective, realWorld, timestamp, device,
+          action, actor, angle, name, pose, sequence, bmom, gmom,hog]"""
+    '''
+    class Carmine(tables.IsDescription):
+        # Use pos to arange the columns
+        # image/video information
+        action          = StringCol(itemsize=16, shape=(), dflt='', pos=0)# StringCol(16)    # 16 character string, action label
+        viewangle       = Int32Col(shape=(), dflt=0, pos=1)# actor angle wrt to device2 0,40,80,..,320
+        device          = Int32Col(shape=(), dflt=0, pos=2)# device ID number # StringCol(itemsize=8, shape=(), dflt='', pos=2)
+        rgbname         = StringCol(itemsize=16, pos=3)    # rgb image name
+        timeStamp       = Float32Col(shape=(),   pos=4)    # time stamp
+        frames          = Int16Col(shape=(3,1),  pos=5)    # frame index number
+        tracking        = StringCol(itemsize=8,  pos=6)    # Bool, tracking user or not
+        actor           = StringCol(itemsize=16, pos=7)    # actor label/name
+        pose            = StringCol(itemsize=16, pos=8)    # pose label action = {pose1, pose2, ..., poseN}
+        sequence        = StringCol(itemsize=16, pos=9)    # sequence number
+
+        # Coords
+        confidence      = Float32Col(shape=(15,1), pos=10) # joint confidence
+        projective      = Float32Col(shape=(15,3), pos=11) # joint coords shape=(rows, cols)
+        realWorld       = Float32Col(shape=(15,3), pos=12) # joint coords
+
+        # post processing labels
+        clusterlabel    = StringCol(itemsize=16, pos=13)   # e.g., walk pose2
+
+        # Features
+        bmom            = Float32Col(shape=(1,36*10), pos=14) # feature descriptor 360: 0-3 geometric moments(10elements) on 36blocks
+        gmom            = Float32Col(shape=(1,36*10), pos=15)
+        hog             = Float32Col(shape=(1,18096), pos=17)
+        rtrans          = Float32Col(shape=(1,36*10), pos=17)
+
+
+
+
+# Create a new hdf5 file that will contain the action tables
+    # Open filename in "w"rite mode; a new file is created (an existing file with the same name is deleted).
+    h5file = openFile(filename, mode= "w", title = "Test file")
+    # Create an action group under "/" (root)
+    group = h5file.createGroup("/", "actions","features")
+    # Create device table for synchronized frames & their information
+    devTab = h5file.createTable(group, "action_name", Carmine, "per frame info")
+
+# Populate a rom in the table:
+    # set the new row of the table
+    devrow = devTab.row
+    # Give test values to the information columns
+    devrow["action"] = "testing code"
+    devrow["viewangle"]= 90 # Actor angle wrt to device2 0,40,80,..,320
+    devrow["device"] = 2 # StringCol(itemsize=8, shape=(), dflt='', pos=2)
+    devrow["rgbname"]= "rgb_frame_2.png" # rgb image name
+    devrow["timeStamp"]= time.time() # timeStamp
+    devrow["frames"]= np.arange(3).reshape(3,1) # matching frame indexes
+    devrow["tracking"]= False # Bool, tracking user or not
+    devrow["actor"]= "El Monkey"# Actor label/name
+    devrow["pose"]= "poseN"   # Pose label action = {pose1, pose2, ..., poseN}
+    devrow["sequence"]= "seqM"
+
+    # Give values to the coords columns
+    devrow["confidence"]= np.array([random.random() for _ in range(0,15)]).reshape(15,1)
+    devrow["projective"]= np.arange(45).reshape(15,3)
+    devrow["realWorld"] = np.arange(45).reshape(15,3)*10
+
+    # Give some random values for the features
+    devrow["bmom"]= np.arange(360).reshape(1,360)
+    devrow["gmom"]= np.array([random.random() for _ in range(0,360)]).reshape(1,360)
+    devrow["hog"] = np.arange(18096).reshape(1,18096)
+    #devrow["rtrans"] = np.ones((1,360), dtype=np.uint8).reshape(360,1)
+
+    # add the row of columns to the tble
+    devrow.append()
+
+    # close the hdf5 file
+    h5file.close()
+# generateHDF5
+
+
+def run():
+    path = "../data/"
+    #F = extract_features(path)
+    #print '|F|: ', len(F)
+
+    generateHDF5(path+"poses.h5")
+    print "Dictionary -> hdf5: DONE!"
+#run
+run()
