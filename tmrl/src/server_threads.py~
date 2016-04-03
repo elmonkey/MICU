@@ -29,7 +29,7 @@ done = False # flag to terminate
 save = False # flag to save
 
 # Add/Remove devices to/from dev_list
-dev_list = ['dev1', 'dev2']#, 'dev3'] # Allowed devices
+dev_list = ['dev1', 'dev2', 'dev3'] # Allowed devices
 
 terminate_list= dev_list[:]
 terminate = False # termiantion flag

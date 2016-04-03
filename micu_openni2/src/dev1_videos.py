@@ -320,6 +320,7 @@ def talk2server(cmd='connect', dev=1):
     """
     try:
         server_response, server_time = client.check_tcp_server(cmd=cmd,dev=dev).split("_")
+        server_response,server_time = clientConnectThread.get_command()        
     except: # noserver response
         server_time="na"
         server_response="none"
@@ -330,9 +331,16 @@ def talk2server(cmd='connect', dev=1):
 
 ## ======== MAIN =========
 if __name__ == '__main__':
-    
     #time.sleep(20) # secs pause! for startup
-    
+    ## Start the client thread:
+    clientConnectThread = client.ClientConnect('check', "1")
+    clientConnectThread.setDaemon(True)
+    clientConnectThread.start() #launching thread
+##	while True: # view <= nviews
+##		server_response,server_time = clientConnectThread.get_command(cmd=cmd,dev=dev).split("_")
+##		print server_response
+##		print "doing other stuff"
+##		time.sleep(5)
     dev = 1
     synctype = 'relaxed'
     actorname = "patient_0"
@@ -354,12 +362,11 @@ if __name__ == '__main__':
     server_time = 0.0
     server_response="none"    
     #client.check_tcp_server(cmd='connect',dev=dev)
-    server_response, server_time = talk2server(cmd='connect',dev=dev)
+    #server_response, server_time = talk2server(cmd='connect',dev=dev)
+    server_response,server_time = clientConnectThread.get_command(cmd='connect',dev=dev).split("_")
     # print(server_response, server_time)
-
-
-
-	## Create a pandas dataframe to hold the information (index starts at 1)
+    
+    ## Create a pandas dataframe to hold the information (index starts at 1)
     cols = ["frameN","localtime","servertime"]
     df = pd.DataFrame(columns=cols)
     df.loc[c] =[0,server_time, time.time()] 
@@ -407,6 +414,8 @@ if __name__ == '__main__':
         #Poll the server:
         #server_response, server_time = client.check_tcp_server(cmd='check',dev=dev).split("_")
         #server_response, server_time = talk2server(cmd='sync',dev=dev)
+        server_response,server_time = clientConnectThread.get_command(cmd='sync',dev=dev).split("_")
+        
         run_time = time.time()-tic
         
         ## === check synchronization type
@@ -484,7 +493,8 @@ if __name__ == '__main__':
     # Disconnect the client from the server
     print "\tDisconecting client"
     #client.check_tcp_server(cmd='close',dev=dev)
-    # server_response, server_time = talk2server(cmd='close',dev=dev)    
+    # server_response, server_time = talk2server(cmd='close',dev=dev)
+    server_response,server_time = clientConnectThread.get_command(cmd='close',dev=dev).split("_")    
     
 
     # Release video/image resources

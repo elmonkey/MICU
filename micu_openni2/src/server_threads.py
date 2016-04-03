@@ -9,7 +9,7 @@ ref:
     
 Open a terminal, set server IP, and run the server
 ctrl+alt+t
-sudo ifconfig eth0 192.168.0.10 netmask 255.255.255.0
+sudo ifconfig eth0 192.168.0.11 netmask 255.255.255.0
 python server_threads.py
 
 NOTE:
@@ -19,7 +19,8 @@ NOTE:
 """
 import SocketServer
 import threading
-import time, strftime, gmtime
+import time
+from time import strftime, gmtime
 
 devs = []
 roll = []
@@ -78,14 +79,14 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
         # Check device is on the list of allowed devices:
         if dev in dev_list:
-            print "Device recognized:"
+            print "Device {} recognized." .format(dev)
             if not terminate:
                 
                 # --- Connect the device <dev1#> "connect" command
                 if conc and self.cmd.lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
-                        self.msg = "dev{} alreadyconnected_{}".format(self.devid, self.tic)
+                        self.msg = "dev{}-ready_{}".format(self.devid, self.tic)
                     else:
                         devs.append(dev)
                         self.msg = "dev{} ready_{}".format(self.devid, self.tic)
@@ -174,11 +175,12 @@ if __name__ == "__main__":
     time.sleep(10) # secs pause!    
     print " ====== SERVER -- RUNNING ====== "
     
-    #HOST = "localhost"
+    HOST = "localhost"
+##    HOST = "192.168.0.11" # Local net
+
     #HOST = '192.168.1.87'    # Alien WiFi - ECE Net
     #HOST = "128.111.185.30"  # Alien Wired ECE Net
     #HOST = "128.111.185.232" # Desktop Wired ECE Net
-    HOST = "192.168.0.11" # Local net
 
 #    dev_list1 = ['dev1']
     server_thread_list=[]
