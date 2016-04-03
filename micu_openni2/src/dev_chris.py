@@ -10,12 +10,12 @@ if __name__=='__main__':
     while True: # view <= nviews
         clientConnectThread.update_command('check')
         server_response = clientConnectThread.get_command()
-        if "save" in server_response:
+        if "wait" in server_response:
             print "RECEIVED FLAG TO SAVE DATA"
-            time.sleep(30)
+            time.sleep(10)
             clientConnectThread.update_command('close')
-            server_response = clientConnectThread.get_command()
+            print ('closed the connection')
         else:
             print "\t doing other stuff"        
         print server_response
-        time.sleep(5)
+        time.sleep(10)

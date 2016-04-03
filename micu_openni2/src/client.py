@@ -26,7 +26,8 @@ from socket import error as socket_error
 
 HOST = "localhost" # Local network
 #HOST = "192.168.0.11" # Local network
-
+def update_command(request='check'):
+    return request
 
 class ClientConnect(threading.Thread):
     """
@@ -83,11 +84,15 @@ class ClientConnect(threading.Thread):
                 print "Received: {}".format(received)
                 self.command = received
                 if self.cb: self.cb()
-                if self.connected == False and self.command == "connect":
-                    print "Connection successful"
-                    self.connected = True
-                else:
-                    self.update_command(self,request="check")
+                if self.cmd == "close":
+                    self.__del__()
+                #if self.connected == False:# and self.command == "connect":
+                #    print "Connection successful"
+                #    self.connected = True
+                #    self.update_command("check")
+                    #self.cmd = "check"
+                #else:
+                #    self.command = update_command()
             #except socket_error as serr:
             #	if serr.errno != errno.ECONNREFUSED:
             #		# Not the error we are looking for, re-raise
@@ -116,9 +121,9 @@ class ClientConnect(threading.Thread):
     def get_command(self):
         return self.command
 
-    def update_command(self, request):
-        self.command = request
-        return self.command
+    def update_command(self, cmd):
+        self.cmd = cmd
+        return self.cmd
 
     def __del__(self):
         """
