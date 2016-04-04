@@ -259,7 +259,7 @@ def createFolders(actor='patient_0'):
         
     #local = '/home/'+usr+'/Documents/Python/openni2_omap/ICU_omap_v2/'
     #local = "/home/carlos/Documents/Python/micu_dev1/"
-    local = "/media/carlos/BlueHdd/Eye-CU/MICU/micu_dev1_Mar29/"
+    local = "/media/carlos/BlueHdd/Eye-CU/MICU/micu_openni2/"
     root = local+'icudata1/'
     ## check existence of directory.
     folder = root+actor
@@ -332,15 +332,6 @@ def talk2server(cmd='connect', dev=1):
 ## ======== MAIN =========
 if __name__ == '__main__':
     #time.sleep(20) # secs pause! for startup
-    ## Start the client thread:
-    clientConnectThread = client.ClientConnect('check', "1")
-    clientConnectThread.setDaemon(True)
-    clientConnectThread.start() #launching thread
-##	while True: # view <= nviews
-##		server_response,server_time = clientConnectThread.get_command(cmd=cmd,dev=dev).split("_")
-##		print server_response
-##		print "doing other stuff"
-##		time.sleep(5)
     dev = 1
     synctype = 'relaxed'
     actorname = "patient_0"
@@ -349,7 +340,7 @@ if __name__ == '__main__':
     fps = 20
     c=0
     ## Runtime and Controls
-    nf  = 1000 #172800# 60*60*24*2 # Number of video frames in each clip
+    nf  = 2000 #172800# 60*60*24*2 # Number of video frames in each clip and video
     f   = 1  # frame counter
     tic = 0
     run_time   = 0
@@ -359,11 +350,14 @@ if __name__ == '__main__':
     done = False
 
     ## TCP communication
+    ## Start the client thread:
+    clientConnectThread = client.ClientConnect("connect", "{}".format(dev))
+    clientConnectThread.setDaemon(True)
+    clientConnectThread.start() #launching thread
+    time.sleep(5)    
     server_time = 0.0
     server_response="none"    
-    #client.check_tcp_server(cmd='connect',dev=dev)
-    #server_response, server_time = talk2server(cmd='connect',dev=dev)
-    server_response,server_time = clientConnectThread.get_command(cmd='connect',dev=dev).split("_")
+    server_response,server_time = clientConnectThread.get_command().split("_")
     # print(server_response, server_time)
     
     ## Create a pandas dataframe to hold the information (index starts at 1)
@@ -392,9 +386,6 @@ if __name__ == '__main__':
     ##--- main loop ---
     done     = False
     while not done: # view <= nviews
-        #print "Frame: ", f
-        #server_time="na"
-        #server_response="none"
         ## RGB-D Streams
         rgb   = get_rgb()
         dmap, d4d = get_depth()
@@ -412,26 +403,25 @@ if __name__ == '__main__':
                 print "Terminating code!"
                 done = True        
         #Poll the server:
-        #server_response, server_time = client.check_tcp_server(cmd='check',dev=dev).split("_")
-        #server_response, server_time = talk2server(cmd='sync',dev=dev)
-        server_response,server_time = clientConnectThread.get_command(cmd='sync',dev=dev).split("_")
+        clientConnectThread.update_command("check")
+        server_response,server_time = clientConnectThread.get_command().split("_")
         
         run_time = time.time()-tic
         
         ## === check synchronization type
         if synctype =='strict':
             if server_response == 'save':
-                video_rgb.write(rgb)    # write to vid file
-                video_depth.write(d4d) # write to vid file
-                video_dmap.write(dmap)
+                video_rgb.write(rgb)    # --> rgb vid file
+                video_depth.write(d4d)  # --> depth vid file
+                video_dmap.write(dmap)  # --> dmap vid file
                 # Write Datarows
                 df.loc[c] =[f,strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()), server_time]             
                 f+=1
                 c+=1
         elif synctype == 'relaxed':            
-            video_rgb.write(rgb)    # write to vid file
-            video_depth.write(d4d) # write to vid file
-            video_dmap.write(dmap)
+            video_rgb.write(rgb)    # --> rgb vid file
+            video_depth.write(d4d)  # --> depth vid file
+            video_dmap.write(dmap)  # --> dmap vid file
 
             # Write Datarows
             df.loc[c] =[f, run_time,server_time]            
@@ -469,45 +459,37 @@ if __name__ == '__main__':
     # while
    
     # TERMINATE
-    print "===Terminating code!==="
+    print "=== Terminating code! ==="
     # Close carmine context and stop device    
-    print "\tClosing carmine context"    
+    print "==== Closing carmine context"    
     rgb_stream.stop()
     depth_stream.stop()
     openni2.unload()
-
     # write last datapoints
+    print "==== Writing last portions of data."
     vid_num=+1
     df.loc[c] =[f, run_time,server_time]
     video_rgb.write(rgb)    # write to vid file
-    video_depth.write(d4d) # write to vid file
+    video_depth.write(d4d)  # write to vid file
     video_dmap.write(dmap)
     # Write data to csv
     df.to_csv(folder4csv+"dev"+str(dev)+'_data'+str(vid_num)+'.csv')        
     # release video writers
+    print "==== Releasing the video writers"
     video_rgb.release()
     video_depth.release()
     video_dmap.release()
-
-
     # Disconnect the client from the server
-    print "\tDisconecting client"
-    #client.check_tcp_server(cmd='close',dev=dev)
-    # server_response, server_time = talk2server(cmd='close',dev=dev)
-    server_response,server_time = clientConnectThread.get_command(cmd='close',dev=dev).split("_")    
-    
-
+    print "==== Disconecting client and closing the server"
+    clientConnectThread.update_command("close")
     # Release video/image resources
     cv2.destroyAllWindows()
-    #vidout.release()
-            
     # print some timing information:
     fps = f/run_time
-    print "Time metrics for {} frames:" .format(f)
+    print "\nTime metrics for {} frames:" .format(f)
     print ("\ttotal run time is %.2f secs over" %run_time)
     print ("\tfps: %.2f"%fps)
-
-    sys.exit(0)
+    sys.exit(1)
 #if __main__
 
 

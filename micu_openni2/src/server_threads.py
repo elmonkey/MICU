@@ -86,10 +86,10 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                 if conc and self.cmd.lower() == "connect":
                     print "\tAttempting to {} {}".format(self.cmd, dev)
                     if dev in devs:
-                        self.msg = "dev{}-ready_{}".format(self.devid, self.tic)
+                        self.msg = "dev{} ready_{}".format(self.devid, self.tic)
                     else:
                         devs.append(dev)
-                        self.msg = "dev{} ready_{}".format(self.devid, self.tic)
+                        self.msg = "dev{} connected_{}".format(self.devid, self.tic)
                    
                 # --- Get server time stamp: laxed synchronization
                 elif self.cmd.lower() =="sync": # get server time stamp
