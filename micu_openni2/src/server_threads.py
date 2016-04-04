@@ -19,7 +19,7 @@ NOTE:
 """
 import SocketServer
 import threading
-import time
+import time, sys
 from time import strftime, gmtime
 
 devs = []
@@ -110,6 +110,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
                 elif self.cmd.lower() == "close":
                     print "Terminating all threads"
                     terminate_list.remove(dev)
+                    self.msg = "close_{}".format(self.tic)                     
                     done = True
                     terminate = True
                 
@@ -130,7 +131,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
             self.msg = "dev{} -Not recognized by the server!!".format(self.devid)
 
 
-        print "There are {} registered devices{}".format(len(devs) , devs)
+        print "The registered devices are {}".format(devs)
         
         if len(devs) == len(dev_list): #roll.values().count('y') == len(dev_list):
             conc = False # done connecting all devs
@@ -196,3 +197,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         for s in server_thread_list:
             s.server.shutdown()
+        sys.exit(0)

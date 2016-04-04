@@ -85,7 +85,7 @@ class ClientConnect(threading.Thread):
                 self.command = received
                 if self.cb: self.cb()
                 if self.cmd == "close":
-                    self.__del__()
+                    self.done == True
                 #if self.connected == False:# and self.command == "connect":
                 #    print "Connection successful"
                 #    self.connected = True
