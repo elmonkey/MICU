@@ -55,7 +55,7 @@ sudo python setup.py install
 
 # Remote access via VNC
 https://www.raspberrypi.org/documentation/remote-access/vnc/README.md
-
+http://mitchtech.net/vnc-setup-on-raspberry-pi-from-ubuntu/
 
 # activate remote desktop access via vnc
 # https://www.raspberrypi.org/documentation/remote-access/vnc/README.md
