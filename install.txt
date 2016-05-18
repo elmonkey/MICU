@@ -1,5 +1,6 @@
-# Installation script for opencv2.9, openni2.2 and primesense python wrapper
-author: Carlos Torres <carlitos408"gmail.com>
+#!/bin/sh
+#Installation script for opencv2.9, openni2.2 and primesense python wrapper
+#author: Carlos Torres <carlitos408"gmail.com>
 
 sudo apt-get update && sudo apt-get dist-upgrade && sudo apt-get autoclean && sudo apt-get autoremove && sudo apt-get update 
 
@@ -30,36 +31,39 @@ sudo apt-get install -y libopencv-dev python-opencv
 cd ~/Install && mkdir kinect && cd kinect
 git clone https://github.com/occipital/OpenNI2 && cd OpenNI2
 ## Compile. Remove the floating point operation flag
-# Remove/delete line 4: "-mfloat-abi=softfp" (save & close)
-pluma ThirdParty/PSCommon/BuildSystem/Platform.ARM
-PLATFORM=Arm make -j2 # OpenNI2 directory
+# line 4: Remove/delete  "-mfloat-abi=softfp" (save & close)
+#pluma ThirdParty/PSCommon/BuildSystem/Platform.ARM
+#PLATFORM=Arm make -j2 # OpenNI2 directory
 # Create ARM installer
-cd Packing/
-python ReleaseVersion.py Arm
+#cd Packing/
+#python ReleaseVersion.py Arm
 
-cp Final/OpenNI-Linux-Arm-2.2.tar.bz2 ~/Install/kinect/
+#cp Final/OpenNI-Linux-Arm-2.2.tar.bz2 ~/Install/kinect/
 
-# If no errors, the compressed installer will be created in "Final" folder (i.e., OpenNI-Linux-Arm-2.2.tar.bz2).
+## If no errors, the compressed installer will be created in "Final" folder (i.e., OpenNI-Linux-Arm-2.2.tar.bz2).
 
-cd Final && cp OpenNI-Linux-Arm-2.2.tar.bz2 ~/Install/kinect/openni2
+#cd Final && cp OpenNI-Linux-Arm-2.2.tar.bz2 ~/Install/kinect/openni2
 
-# Extract the contents to OpenNI-Linux-Arm-2.2 and rename the folder (helps with multiple installations/versions)
-mv ~/Install/kinect/openni2/OpenNI-Linux-Arm-2.2 ~/Install/kinect/
-#Install
-sudo ./install.sh
+## Extract the contents to OpenNI-Linux-Arm-2.2 and rename the folder (helps with multiple installations/versions)
+#mv ~/Install/kinect/openni2/OpenNI-Linux-Arm-2.2 ~/Install/kinect/
+##Install
+#sudo ./install.sh
 
-# Primesense python wrapper
-wget https://pypi.python.org/pypi/primesense/
-cd primesense-2.x.x.xx.x
-sudo python setup.py install
+## Primesense python wrapper
+#wget https://pypi.python.org/pypi/primesense/
+#cd primesense-2.x.x.xx.x
+#sudo python setup.py install
 
-# Remote access via VNC
-https://www.raspberrypi.org/documentation/remote-access/vnc/README.md
-http://mitchtech.net/vnc-setup-on-raspberry-pi-from-ubuntu/
+## Remote access via VNC
+#https://www.raspberrypi.org/documentation/remote-access/vnc/README.md
+#http://mitchtech.net/vnc-setup-on-raspberry-pi-from-ubuntu/
+
+## Get the micu repo
+cd ~/Documents/
+git clone https://github.com/elmonkey/MICU.git
 
 # activate remote desktop access via vnc
 # https://www.raspberrypi.org/documentation/remote-access/vnc/README.md
-device name = pi2
-ip  = 192.xxx.x.xx
-pwd = vxxxxx
-
+#device name = pi2
+#ip  = 192.xxx.x.xx
+#pwd = vxxxxx

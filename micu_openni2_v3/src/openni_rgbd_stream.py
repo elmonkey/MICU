@@ -39,7 +39,10 @@ from primesense import _openni2 as c_api
 # OMAP
 #dist = '/home/carlos/Install/kinect/OpenNI2-Linux-ARM-2.2/Redist/'
 ##alienware
-dist='/home/carlos/Install/kinect2/OpenNI2/Redist'
+#dist='/home/carlos/Install/kinect2/OpenNI2/Redist'
+
+##pi3
+dist = '/home/carlos/Install/kinect/OpenNI-Linux-Arm-2.2/Redist/'
 
 
 ## initialize openni and check
@@ -119,7 +122,7 @@ def mask_rgbd(d4d,rgb, th=0):
     """
     Overlays images and uses some blur to slightly smooth the mask
     (3L ndarray, 3L ndarray) -> 3L ndarray
-    th:= threshold
+    th:= threshold [0:1:128]
     """
     mask = d4d.copy()
     #mask = cv2.GaussianBlur(mask, (5,5),0)
@@ -142,7 +145,7 @@ while not done:
     dmap,d4d = get_depth()
     
     # Overlay rgb over the depth stream
-    rgbd  = mask_rgbd(d4d,rgb)
+    rgbd  = mask_rgbd(d4d,rgb, th=100)
     
     # canvas
     canvas = np.hstack((d4d,rgb,rgbd))

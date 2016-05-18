@@ -153,9 +153,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 class ServerThread(threading.Thread):
     #HOST = "localhost"
-    #HOST = '192.168.1.87'    # Alien WiFi - ECE Net
-    #HOST = "128.111.185.30"  # Alien Wired ECE Net
-    #HOST = "128.111.185.232" # Desktop Wired ECE Net
     HOST = "192.168.0.11" # Local net
     
     def __init__(self,serverid='dev1', HOST=HOST, PORT=50007):      
@@ -173,15 +170,11 @@ class ServerThread(threading.Thread):
 
 if __name__ == "__main__":
     
-    time.sleep(10) # secs pause!    
+    time.sleep(5) # secs pause!    
     print " ====== SERVER -- RUNNING ====== "
     
-    HOST = "localhost"
-##    HOST = "192.168.0.11" # Local net
-
-    #HOST = '192.168.1.87'    # Alien WiFi - ECE Net
-    #HOST = "128.111.185.30"  # Alien Wired ECE Net
-    #HOST = "128.111.185.232" # Desktop Wired ECE Net
+    #HOST = "localhost"
+    HOST = "192.168.0.11" # Local net
 
 #    dev_list1 = ['dev1']
     server_thread_list=[]

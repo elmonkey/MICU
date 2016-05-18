@@ -1,24 +1,17 @@
 #!/usr/bin/python
 '''
-Created on Jan 31, 2014
+Created on 17May2016
 
-Version 2 -- Large revision change
-    Jun 20 2015 - OpenNI2.2
-    Sep 17, 2015 - added laxed and strict server synchronization 
-                         cvs with framenuber, local timestamp, server timestap
-                         added try to connect to server if active. 
-                         Code wont crash if server or other clients fail.
-Dependencies:
-1) openni2.2 acquire: depth, rgb, & mask(user pixels) from primesense device
-2) primesense 2.2.0.30 python binaries for openni2
-3) numpy to convert openni structures/data to mat arrays
-4) opencv for displaying, saving frames/images, and generating videos
-5) pytables (hdf5) for bookkeeping
+Raspberry Pi3 TCP/IP communication network each controlling a primesense.
+ - each pi records one .avi file: 
+		RGB, 
+		Depth, and 
+		Distance map (Dmap - see details how this is manipulated)
 
 Current features:
-    1) Saves png for types for the run: rgb, depth, mask, skel, all
-        rgbdm is saved at 4:1. See "frames" folder
-            save_frames_flag=True
+    1) Saves .avi files: rgb, depth, mask, skel, all
+		individual frames can be saved by setting the flag       
+		save_frames_flag=True
     
     2) Save frames/screenshots rgb and dmap (raw depth, not depth for display)
         * s-key to "screen" capture to screens folder
@@ -27,14 +20,10 @@ Current features:
     3) Displays the images: normal, medium, or small
         rgb and depth
 
-    4) Create an HDF5 file (pytable)
-        name: 'ICU_dev<#>.h5'
-        group: 'action'
-        table: 'actor'
-            ||globalframe|viewframe|timestamp|viewangle|actionlabel|actorlabel|
-             |locatime_stimestamp|.. etc|
+    4) Create a csv file via pandas
+        name: 'ICU_dev<#>.csv'
     
-    5) tcp client
+    5) Threaded tcp client and server
         devid: dev1, dev2, ..devN
         Add/Remove access by removing/adding devs from server_threads.py
         
@@ -42,12 +31,14 @@ Current features:
             servers response: save, wait
 
 Execution:
-    WIRED NET
-        #Open a terminal, set server IP, and run the server
-        ctrl+alt+t
-        sudo ifconfig eth0 192.168.0.11 netmask 255.255.255.0
-        # Activate server
-        python server_threads.py
+NETWORKING
+#Open a terminal, set server IP, and run the server
+ctrl+alt+t
+sudo ifconfig eth0 192.168.0.11 netmask 255.255.255.0 # landline
+sudo ifconfig wlan0 192.168.0.11 netmask 255.255.255.0 # wireless
+# Activate server
+python server_threads.py # first terminal
+python dev1_videos.py # second terminal
 
 @author: Carlos Torres <carlitos408@gmail.com>
 '''
@@ -60,7 +51,6 @@ from time import localtime, strftime, gmtime
 import pickle
 import client
 
-
 ## Drawing
 radius = 10
 green  = (0,255,0)
@@ -69,26 +59,22 @@ red    = (0,0,255)
 colors = [green, blue, red]
 #confs  = [1.0, 0.5, 0.0]
 
-x = 480/2
-y = 640/2
+# Device resolution
+w = 640
+h = 480
+# Center of the image
+x = h/2
+y = w/2
 
+# Device number
+devN=1
 
 ## Array to store the image modalities+overlayed_skeleton (4images)
 #rgb   = np.zeros((480,640,3), np.uint8)
 #rgbdm = np.zeros((480,640*4, 3), np.uint8)
 
-
-## Path of the OpenNI redistribution OpenNI2.so or OpenNI2.dll
-# Windows
-#dist = 'C:\Program Files\OpenNI2\Redist\OpenNI2.dll'
-# OMAP
-#dist = '/home/carlos/Install/kinect/OpenNI2-Linux-ARM-2.2/Redist/'
-# Linux
-
-##omap
-#dist = '/home/carlos/Install/kinect/OpenNI2-Linux-Arm-2.2/Redist/'
-##alienware
-dist='/home/carlos/Install/kinect2/OpenNI2/Redist'
+##pi3
+dist = "/home/carlos/Install/kinect/OpenNI-Linux-Arm-2.2/Redist/"
 
 ## initialize openni and check
 openni2.initialize(dist)
@@ -106,8 +92,7 @@ rgb_stream = dev.create_color_stream()
 depth_stream = dev.create_depth_stream()
 
 
-w = 640
-h = 480
+
 
 
 ##configure the depth_stream
@@ -115,9 +100,6 @@ depth_stream.set_video_mode(c_api.OniVideoMode(pixelFormat=c_api.OniPixelFormat.
 ## Check and configure the depth_stream -- set automatically based on bus speed
 #print 'The rgb video mode is', rgb_stream.get_video_mode() # Checks rgb video configuration
 rgb_stream.set_video_mode(c_api.OniVideoMode(pixelFormat=c_api.OniPixelFormat.ONI_PIXEL_FORMAT_RGB888, resolutionX=w, resolutionY=h, fps=30))
-
-
-## 
 
 ## Configure the mirroring, which by default is enabled (True)
 depth_stream.set_mirroring_enabled(False)
@@ -138,7 +120,7 @@ def get_rgb():
     """
     Returns numpy 3L ndarray to represent the rgb image.
     """
-    bgr   = np.fromstring(rgb_stream.read_frame().get_buffer_as_uint8(),dtype=np.uint8).reshape(480,640,3)
+    bgr   = np.fromstring(rgb_stream.read_frame().get_buffer_as_uint8(),dtype=np.uint8).reshape(h,w,3)
     rgb   = cv2.cvtColor(bgr,cv2.COLOR_BGR2RGB)
     return rgb    
 #get_rgb
@@ -158,7 +140,7 @@ def get_depth():
         .reshape(240,320) # Used to MATCH RGB Image (OMAP/ARM)
                 Requires .set_video_mode
     """
-    dmap = np.fromstring(depth_stream.read_frame().get_buffer_as_uint16(),dtype=np.uint16).reshape(480,640)  # Works & It's FAST
+    dmap = np.fromstring(depth_stream.read_frame().get_buffer_as_uint16(),dtype=np.uint16).reshape(h,w)  # Works & It's FAST
     d4d  = dmap.astype(float) *255/ 2**12-1 # Correct the range. Depth images are 12bits
     d4d  = cv2.cvtColor(np.uint8(d4d),cv2.COLOR_GRAY2RGB)
     
@@ -174,63 +156,7 @@ def get_depth():
 #get_depth
 
 
-#def createFolders(actor='patient_0'):
-#    """
-#    Checks if a sdcard is connected and if a folder exists under 
-#        root/icudata/patient_<number>
-#    If it exists a new name is created
-#        newname = root/icudata/patient_<number+1>
-#        foldername = newfoldername
-#    Ultimately, creates folders for frames and csv files and returns paths.
-#        folder4frames='root/icudata/patient_<number+1>/frames/'
-#        folder4csv   ='root/icudata/patient_<number+1>/csv/'
-#    """
-#    
-#    ## Two storage locations: media or local
-#    if len(os.listdir('/media/')) >0:
-#        #sdcard = os.listdir('/media/')[0]
-#        #if len(os.listdir('/media/'+usr))>0: #check to see if there are any cards
-#        sdcard = os.listdir('/media/')[0]
-#        media = '/media/'+sdcard+'/'
-#        root = media+'icudata1/'
-#        storage = 'External'
-#    else: #if not, then save on local hdd
-#        usr = os.listdir('/home/')[0]
-#        local = '/home/'+usr+'/Documents/Python/openni2_omap/ICU_omap_v2/'
-#        root = local+'icudata1/'
-#        storage='Local'
-#    #end ifsdcards
-#    
-#    ## check existence of directory.
-#    folder = root+actor
-#    name,idx = actor.split('_')    
-#    done = False
-#    while not done:
-#        if os.path.isdir(folder):
-#            'Directory exists {}... renaming!'.format(folder)
-#            name,idx = actor.split('_')
-#            idx = str(int(idx)+1)
-#            print idx
-#            actor = ('_').join([name,idx])
-#            folder = root+actor
-#            
-#        else:
-#            print 'Directory {} Doesnt Exist. Creating It'.format(folder)
-#            folder4frames = folder+'/frames/'
-#            #folder4vids = folder+'/videos/'
-#            folder4csv    = folder+'/csv/'
-#            os.makedirs(folder4frames+'/rgb/')
-#            os.makedirs(folder4frames+'/depth/')
-#            os.makedirs(folder4csv)
-#            done = True
-#    #print '{} storage location {}'.format(storage, root)
-#    #print 'Directory for frames: {}'.format(folder4frames)
-#    #print 'Directory for csv file: {}'.format(folder4csv)
-#    return folder4frames,folder4csv
-## createFolders()
-
-
-def createFolders(actor='patient_0'):
+def createFolders(actor='patient_0', save2sdcard=False):
     """
     Checks if a sdcard is connected and if a folder exists under 
         root/icudata/patient_<number>
@@ -241,26 +167,21 @@ def createFolders(actor='patient_0'):
         folder4frames='root/icudata/patient_<number+1>/frames/'
         folder4csv   ='root/icudata/patient_<number+1>/csv/'
     """
+	# memory card name
+    sdname = "6563-3566" 
+    ## Two storage locations: media or local
+	#if save2sdcard:
+    #    media = '/media/'+ sdname +'/'
+    #    root = media+'icudata{}/'.format(devN)
+    #    storage = 'External'
+    #else: #if not, then save on local hdd
+    #usr = "carlos" #os.listdir('/home/')[0]
+    #local = '/home/'+usr+'/Documents/Python/MICU/micu_openni2_v3/'
+    local = "/home/carlos/Documents/Python/MICU/micu_openni2_v3/"
+    root = local+'icudata{}/'.format(devN)
+    storage='Local'
+    #end ifsdcards
     
-#    ## Two storage locations: media or local
-#    if len(os.listdir('/media/')) >0:
-#        #sdcard = os.listdir('/media/')[0]
-#        #if len(os.listdir('/media/'+usr))>0: #check to see if there are any cards
-#        sdcard = os.listdir('/media/')[0]
-#        media = '/media/'+sdcard+'/'
-#        root = media+'icudata1/'
-#        storage = 'External'
-#    else: #if not, then save on local hdd
-#        usr = os.listdir('/home/')[0]
-#        local = '/home/'+usr+'/Documents/Python/openni2_omap/ICU_omap_v2/'
-#        root = local+'icudata1/'
-#        storage='Local'
-#    #end ifsdcards
-        
-    #local = '/home/'+usr+'/Documents/Python/openni2_omap/ICU_omap_v2/'
-    #local = "/home/carlos/Documents/Python/micu_dev1/"
-    local = "/media/carlos/BlueHdd/Eye-CU/MICU/micu_openni2/"
-    root = local+'icudata1/'
     ## check existence of directory.
     folder = root+actor
     name,idx = actor.split('_')    
@@ -278,17 +199,17 @@ def createFolders(actor='patient_0'):
             print 'Directory {} Doesnt Exist. Creating It'.format(folder)
             folder4frames = folder
             #folder4vids = folder+'/videos/'
-            folder4csv    = folder+'/csv/'
+            folder4csv    = folder   +'/csv/'
             os.makedirs(folder4frames+'/rgb/')
             os.makedirs(folder4frames+'/depth/')
             os.makedirs(folder4frames+'/dmap/')            
             os.makedirs(folder4csv)
             done = True
-    #print '{} storage location {}'.format(storage, root)
-    #print 'Directory for frames: {}'.format(folder4frames)
-    #print 'Directory for csv file: {}'.format(folder4csv)
+            print '{} storage location {}'.format(storage, root)
+            print 'Directory for videos : {}'.format(folder4frames)
+            print 'Directory for csv files: {}'.format(folder4csv)
     return folder4frames,folder4csv
-# createFolders()
+## createFolders()
     
 
 
@@ -299,27 +220,26 @@ def save_frames(frame, rgb, depth, p="../data/frames/"):
     """
     # save te images to the path
     print "Saving image {} to {}".format(frame, p)
-    cv2.imwrite(p+'/rgb/'+"rgb_"  + str(frame)+".png",rgb)
+    cv2.imwrite(p+'/rgb/'  +"rgb_"  + str(frame)+".png",rgb)
     cv2.imwrite(p+'/depth/'+"depth_"+ str(frame)+".png",depth)
     return
 # save_frames
 
 
-def talk2server(cmd='connect', dev=1):
+def talk2server(cmd='connect', devN=1):
     """
     Communicate with server 'if active'
     inputs:
         cmd = str 'connect' ,'check' , 'sync' or 'close'
-        dev = int 1, 2, ... n, (must be declared in server_threads.py)
+        devN = int 1, 2, ... n, (must be declared in server_threads.py)
     outputs:
         server_reponse = str, server response
         server_time = str, server timestamp
     usage:
-    server_response, server_time = talk2server(cmd='connect',dev=1)
-        
+    server_response, server_time = talk2server(cmd='connect',devN=1)
     """
     try:
-        server_response, server_time = client.check_tcp_server(cmd=cmd,dev=dev).split("_")
+        server_response, server_time = client.check_tcp_server(cmd=cmd,dev=devN).split("_")
         server_response,server_time = clientConnectThread.get_command()        
     except: # noserver response
         server_time="na"
@@ -330,17 +250,22 @@ def talk2server(cmd='connect', dev=1):
 
 
 ## ======== MAIN =========
-if __name__ == '__main__':
+if __name__ == "__main__":
     #time.sleep(20) # secs pause! for startup
-    dev = 1
-    synctype = 'relaxed'
+    #devN = 1
+    synctype  = "relaxed"
     actorname = "patient_0"
-    test_flag = True
+
+    ## Flags
+    vis_frames       = True  # True   # display frames
+    save_frames_flag = False  # save all frames
+    test_flag        = True
+
     test_frames = 5000000
-    fps = 20
+    fps = 10
     c=0
     ## Runtime and Controls
-    nf  = 2000 #172800# 60*60*24*2 # Number of video frames in each clip and video
+    nf  = 2000#172800# 60*60*24*2 # Number of video frames in each clip and video
     f   = 1  # frame counter
     tic = 0
     run_time   = 0
@@ -351,23 +276,24 @@ if __name__ == '__main__':
 
     ## TCP communication
     ## Start the client thread:
-    clientConnectThread = client.ClientConnect("connect", "{}".format(dev))
+    clientConnectThread = client.ClientConnect("connect", "{}".format(devN))
     clientConnectThread.setDaemon(True)
     clientConnectThread.start() #launching thread
-    time.sleep(5)    
+    #time.sleep(1)    
     server_time = 0.0
-    server_response="none"    
-    server_response,server_time = clientConnectThread.get_command().split("_")
+    server_response="none"
+    response = clientConnectThread.get_command()
+    if "_" in response:
+        server_response,server_time  = response.split("_")
+    else: server_reponse = response
     # print(server_response, server_time)
     
     ## Create a pandas dataframe to hold the information (index starts at 1)
     cols = ["frameN","localtime","servertime"]
-    df = pd.DataFrame(columns=cols)
-    df.loc[c] =[0,server_time, time.time()] 
+    df   = pd.DataFrame(columns=cols)
+    df.loc[c] =[0,server_time,time.time()] 
     
-    ## Flags
-    vis_frames      = True   # True   # display frames
-    save_frames_flag= False  # save all frames
+
 
 
     ## The folders for all data
@@ -375,9 +301,9 @@ if __name__ == '__main__':
     print "Creating Video Headers"
     ## Initialize the videowriter
     vid_num=0
-    video_rgb   = cv2.VideoWriter(folder4frames+"/rgb/dev"  +str(dev)+"rgb"  +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
-    video_depth = cv2.VideoWriter(folder4frames+"/depth/dev"+str(dev)+"depth"+str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
-    video_dmap  = cv2.VideoWriter(folder4frames+"/dmap/dev" +str(dev)+"dmap" +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(h,w)) 
+    video_rgb   = cv2.VideoWriter(folder4frames+"/rgb/dev"  +str(devN)+"rgb"  +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
+    video_depth = cv2.VideoWriter(folder4frames+"/depth/dev"+str(devN)+"depth"+str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
+    video_dmap  = cv2.VideoWriter(folder4frames+"/dmap/dev" +str(devN)+"dmap" +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h)) 
 
     # Get the first timestamp
     tic = time.time()
@@ -396,7 +322,7 @@ if __name__ == '__main__':
             #rgbdm_small = cv2.resize(rgbdm,(1280,240)) # medium
             #rgbdm_small = cv2.resize(rgbdm,(640,240)) # smallest     
             rgbdm_small = cv2.resize(rgbdm,(960,240)) # smallest 
-            cv2.imshow("1:4 scale", rgbdm_small) # small
+            cv2.imshow("1:4 scale", rgbdm_small)
             ## === Keyboard Commands ===
             key = cv2.waitKey(1) & 255
             if key == 27: 
@@ -404,9 +330,13 @@ if __name__ == '__main__':
                 done = True        
         #Poll the server:
         clientConnectThread.update_command("check")
-        server_response,server_time = clientConnectThread.get_command().split("_")
-        
+        sresponse = clientConnectThread.get_command()
+        if "_" in response:
+            server_response,server_time  = response.split("_")
+        else: server_reponse = response
+    
         run_time = time.time()-tic
+        print "Processing frame number {}".format(f)
         
         ## === check synchronization type
         if synctype =='strict':
@@ -430,26 +360,27 @@ if __name__ == '__main__':
         else:
             print "synchronization type unknown"
             
-            
+        
         if test_flag and (f==test_frames): 
             print "Terminating code!"
             done = True
             
         if np.mod(f,nf) == 0: # close and create new csv and video
-            df.to_csv(folder4csv+"dev"+str(dev)+'_data'+str(vid_num)+'.csv')
+            df.to_csv(folder4csv+"dev"+str(devN)+'_data'+str(vid_num)+'.csv')
             # release video writers
             video_rgb.release()
             video_depth.release()
             video_dmap.release()
+            print "session {} saved".format(vid_num)
             vid_num+=1
             ## Create new video writers 
-            video_rgb   = cv2.VideoWriter(folder4frames+"/rgb/dev"  +str(dev)+"rgb"  +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
-            video_depth = cv2.VideoWriter(folder4frames+"/depth/dev"+str(dev)+"depth"+str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
-            video_dmap  = cv2.VideoWriter(folder4frames+"/dmap/dev" +str(dev)+"dmap" +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(h,w))    
+            video_rgb   = cv2.VideoWriter(folder4frames+"/rgb/dev"  +str(devN)+"rgb"  +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
+            video_depth = cv2.VideoWriter(folder4frames+"/depth/dev"+str(devN)+"depth"+str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))
+            video_dmap  = cv2.VideoWriter(folder4frames+"/dmap/dev" +str(devN)+"dmap" +str(vid_num)+".avi",fourcc, fps=fps, frameSize=(w,h))    
             # reset pandas dataframe
             df = pd.DataFrame(columns=cols)
             c=0
-            done = True
+            ##done = True #stop after the first recording.
 
         #elif chr(key) =='s':  #s-key to save current screen
         #    save_frames(f,rgb,dmap,p=folder4screens)
@@ -473,7 +404,7 @@ if __name__ == '__main__':
     video_depth.write(d4d)  # write to vid file
     video_dmap.write(dmap)
     # Write data to csv
-    df.to_csv(folder4csv+"dev"+str(dev)+'_data'+str(vid_num)+'.csv')        
+    df.to_csv(folder4csv+"dev"+str(devN)+'_data'+str(vid_num)+'.csv')        
     # release video writers
     print "==== Releasing the video writers"
     video_rgb.release()
