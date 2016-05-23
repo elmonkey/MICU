@@ -5,9 +5,9 @@
 # Create vncboot in /etc/init.d/ as sudo su OR: 
 # sudo cp ~/Documents/Python/MICU/shells/vncboot.sh /etc/init.d/
 # cd /etc/init.d/
-# chmod 755 vncboot
+# sudo chmod 755 vncboot.sh
 # update-rc.d -f lightdm remove
-# update-rc.d vncboot defaults
+# update-rc.d vncboot.sh defaults
 
 ### BEGIN INIT INFO
 # Provides: vncboot
@@ -20,7 +20,7 @@
 ### END INIT INFO
 
 USER=carlos
-HOME=/home/pi2
+HOME=/home/pi1
 
 export USER HOME
 
@@ -28,7 +28,7 @@ case "$1" in
  start)
   echo "Starting VNC Server"
   #Insert your favoured settings for a VNC session
-  su - $USER -c "/usr/bin/vncserver :1 -geometry 1280x800 -depth 24 -pixelformat rgb565"
+  su - $USER -c "/usr/bin/vncserver :1 -geometry 1024x600 -depth 16 -pixelformat rgb565"
   ;;
 
  stop)
