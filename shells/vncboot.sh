@@ -8,7 +8,8 @@
 # sudo chmod 755 vncboot.sh
 # update-rc.d -f lightdm remove
 # update-rc.d vncboot.sh defaults
-
+# To View form remote:
+# vncviewer xx.x.x.xx:5901
 ### BEGIN INIT INFO
 # Provides: vncboot
 # Required-Start: $remote_fs $syslog
