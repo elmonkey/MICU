@@ -26,6 +26,10 @@ sudo apt-get -y install libboost-python-dev
 # OpenCV 2.4.9
 sudo apt-get install -y libopencv-dev python-opencv
 
+# tight vnv server
+sudo apt-get install tightvncserver
+
+
 ## Follow the github for primense2 installation
 # ref: https://github.com/elmonkey/Python_OpenNI2
 cd ~/Install && mkdir kinect && cd kinect
