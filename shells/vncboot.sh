@@ -13,7 +13,7 @@
 # vncviewer xx.x.x.xx:5901
 #
 # To reset pi pwd on a termina run the following two commands:
-# vncpasswd # reenter new pwd twice (1:replace, 2:confirm)
+# vncpasswd # reenter new pwd twice (1:replace, 2:confirm -- vrl4162)
 # service vncserver restart # or restart device
 
 ### BEGIN INIT INFO
