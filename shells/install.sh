@@ -59,7 +59,7 @@ git clone https://github.com/occipital/OpenNI2 && cd OpenNI2
 #http://mitchtech.net/vnc-setup-on-raspberry-pi-from-ubuntu/
 
 ## Get the micu repo
-cd ~/Documents/
+cd ~/Documents/ && mkdir Python && cd Python
 git clone https://github.com/elmonkey/MICU.git
 
 # activate remote desktop access via vnc
