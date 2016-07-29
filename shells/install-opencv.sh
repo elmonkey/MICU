@@ -8,6 +8,7 @@ sudo apt-get -y upgrade
 sudo apt-get -y dist-upgrade
 sudo apt-get -y autoremove
 sudo rpi-update
+# NOTE: reboot suggested
 
 
 # INSTALL THE DEPENDENCIES
