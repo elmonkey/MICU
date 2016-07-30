@@ -33,11 +33,13 @@ sudo apt-get install libatlas-base-dev gfortran
 # python headers and bindings
 sudo apt-get install python2.7-dev python3-dev
 
+# hdf5
+sudo apt-get install libhdf5-serial-dev
 
-# INSTALL THE LIBRARY (YOU CAN CHANGE '3.1.0' FOR THE LAST STABLE VERSION)
-
+# file compression
 sudo apt-get install -y unzip wget
 
+# INSTALL THE LIBRARY (YOU CAN CHANGE '3.1.0' FOR THE LAST STABLE VERSION)
 wget https://github.com/Itseez/opencv/archive/3.1.0.zip
 unzip 3.1.0.zip
 rm 3.1.0.zip
