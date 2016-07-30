@@ -60,10 +60,3 @@ unzip opencv_contrib.zip
 wget https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
 
-
-
-
-
-# EXECUTE SOME OPENCV EXAMPLES AND COMPILE A DEMONSTRATION
-
-# To complete this step, please visit 'http://milq.github.io/install-opencv-ubuntu-debian'.
