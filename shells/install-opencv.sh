@@ -3,6 +3,9 @@
 # Ref:
 # http://www.pyimagesearch.com/2015/10/26/how-to-install-opencv-3-on-raspbian-jessie/
 
+# something else to try in case codecs fail (note from 15Aug16)
+# https://github.com/milq/scripts-ubuntu-debian/blob/master/install-opencv.sh
+
 sudo apt-get -y update
 sudo apt-get -y upgrade
 sudo apt-get -y dist-upgrade
