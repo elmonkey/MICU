@@ -62,3 +62,7 @@ unzip opencv_contrib.zip
 wget https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
 
+# Solve hdf5 issues by modifyong the file /opencv_contrib-3.1.0/modules/hdf/include/opencv2/hdf/hdf5.hpp 
+# in line 40:
+# --- #include <hdf5.h>
+# +++ #include "/usr/include/hdf5/serial/hdf5.h"
