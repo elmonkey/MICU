@@ -55,9 +55,10 @@ unzip opencv_contrib.zip
 mkdir build
 cd build
 #cmake -DWITH_QT=ON -DWITH_OPENGL=ON -DFORCE_VTK=ON -DWITH_TBB=ON -DWITH_GDAL=ON -DWITH_XINE=ON -DBUILD_EXAMPLES=ON ..
-#make -j4
-#sudo make install
-#sudo ldconfig
+cmake-gui ..
+make -j4
+sudo make install
+sudo ldconfig
 
 ## Step #3: Setup Python
 # Python for our OpenCV compile is to install pip
