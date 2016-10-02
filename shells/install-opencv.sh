@@ -56,6 +56,7 @@ mkdir build
 cd build
 #cmake -DWITH_QT=ON -DWITH_OPENGL=ON -DFORCE_VTK=ON -DWITH_TBB=ON -DWITH_GDAL=ON -DWITH_XINE=ON -DBUILD_EXAMPLES=ON ..
 cmake-gui ..
+
 make -j4
 sudo make install
 sudo ldconfig
