@@ -48,13 +48,12 @@ unzip 3.1.0.zip
 rm 3.1.0.zip
 
 #OpenCV 3 (which includes features such as SIFT and SURF), be sure to grab the opencv_contrib repo as well. (Note: Make sure your opencv  and opencv_contrib  versions match up, otherwise you will run into errors during compilation. For example, if I download v3.0.0 of opencv , then I’ll want to download v3.0.0 of opencv_contrib  as well):
+cd opencv-3.1.0/
 wget -O opencv_contrib.zip https://github.com/Itseez/opencv_contrib/archive/3.1.0.zip
 unzip opencv_contrib.zip
 
-#mv opencv-3.1.0 OpenCV
-#cd OpenCV
-#mkdir build
-#cd build
+mkdir build
+cd build
 #cmake -DWITH_QT=ON -DWITH_OPENGL=ON -DFORCE_VTK=ON -DWITH_TBB=ON -DWITH_GDAL=ON -DWITH_XINE=ON -DBUILD_EXAMPLES=ON ..
 #make -j4
 #sudo make install
